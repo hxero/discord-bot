@@ -82,7 +82,7 @@ export interface Command {
 	description: string;
 	options: CommandOptionKey[];
 	environment: unknown[];
-	callback: (
+	fn: (
 		context: ClientContext,
 		options: CommandOptions,
 		env: unknown[],
@@ -96,6 +96,18 @@ export interface CommandOptions {
 	args: string[];
 	all: boolean;
 	reply?: ClientContext;
+}
+
+interface CommandParams {
+	name: string;
+	description: string;
+	aliases?: string[];
+	options?: CommandOptionKey[];
+	fn: (
+		context: ClientContext,
+		options: CommandOptions,
+		env: unknown[],
+	) => void;
 }
 
 async function request<T = unknown>(
@@ -120,16 +132,21 @@ async function request<T = unknown>(
 
 class Client extends EventEmitter {
 	private socket: Gateway;
+	private _commands = new Map<string, Command>();
 
-	tokens: string[];
-	profiles: Record<string, string>[];
-	profile: Record<string, string>;
-	prefix: string;
-	owner: string;
-	channel: string;
-	guild: string | undefined;
-	commands: Command[];
-	headers: Record<string, string>;
+	readonly commands: Command[] = [];
+	readonly tokens: string[] = [];
+	readonly profiles: Record<string, string>[] = [];
+	readonly headers: Record<string, string> = {
+		"User-Agent":
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
+	};
+
+	public profile: Record<string, string> = {};
+	public prefix: string;
+	public owner: string;
+	public channel: string;
+	public guild: string | undefined;
 
 	constructor(config: ClientConfig) {
 		super();
@@ -137,15 +154,7 @@ class Client extends EventEmitter {
 		this.owner = config.owner;
 		this.channel = config.channel;
 		this.guild = config.guild;
-		this.tokens = [];
-		this.profiles = [];
-		this.commands = [];
-		this.profile = {};
 		this.socket = new Gateway(this);
-		this.headers = {
-			"User-Agent":
-				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
-		};
 	}
 
 	public get token(): string {
@@ -428,38 +437,35 @@ class Client extends EventEmitter {
 		});
 	}
 
-	public add(
-		name: string,
-		aliases: string[],
-		description: string,
-		options: CommandOptionKey[],
-		callback: (
-			context: ClientContext,
-			options: CommandOptions,
-			env: unknown[],
-		) => void,
+	public register_command(
+		command: CommandParams,
 	): void {
-		this.commands.push({
-			name,
-			aliases: aliases ?? [],
-			description: description ?? "No description.",
-			options: options ?? [],
+		const cmd = {
+			aliases: [],
+			options: [],
 			environment: [],
-			callback,
-		});
+			...command,
+		};
+
+		this._commands.set(cmd.name, cmd);
+		this.commands.push(cmd);
+
+		if (cmd.aliases) {
+			for (const alias of cmd.aliases) {
+				this._commands.set(alias, cmd);
+			}
+		}
 	}
 
-	public load(name: string): Command | undefined {
-		const lower = name.toLowerCase();
-		return this.commands.find(
-			(cmd) =>
-				cmd.name.toLowerCase() === lower ||
-				cmd.aliases.some((a) => a.toLowerCase() === lower),
-		);
+	public load_command(name: string): Command | undefined {
+		return this._commands.get(name);
 	}
 
-	public run(name: string, args: [ClientContext, CommandOptions]): void {
-		const command = this.load(name);
+	public execute(
+		name: string,
+		args: [ClientContext, CommandOptions],
+	): void {
+		const command = this.load_command(name);
 		if (!command) return;
 
 		let [context, options] = args;
@@ -484,7 +490,7 @@ class Client extends EventEmitter {
 		};
 
 		try {
-			command.callback(context, config, command.environment);
+			command.fn(context, config, command.environment);
 		} catch (error) {
 			console.error(error);
 		}

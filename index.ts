@@ -68,18 +68,22 @@ client.handle_missing_argument = (option: string) => {
 	}
 };
 
-client.add("ping", [], "'get the API latency'", [], async (context) => {
-	const start_time = Date.now();
-	const message = await context.send("Pong!") as ClientMessage;
-	if (message) await message.edit(`Pong! ${Date.now() - start_time}ms`);
+client.register_command({
+	name: "ping",
+	description: "'get the API latency'",
+	fn: async (context) => {
+		const start_time = Date.now();
+		const message = await context.send("Pong!") as ClientMessage;
+		if (message) await message.edit(`Pong! ${Date.now() - start_time}ms`);
+	},
 });
 
-client.add(
-	"switch",
-	["bot"],
-	"<user> 'switches main bot'",
-	["text"],
-	async (context, options) => {
+client.register_command({
+	name: "switch",
+	aliases: ["bot"],
+	description: "<user> 'switches main bot'",
+	options: ["text"],
+	fn: async (context, options) => {
 		const { text } = options;
 		const index = client.profiles.findIndex((p) =>
 			p.username?.toLowerCase().startsWith(text.toLowerCase())
@@ -94,25 +98,23 @@ client.add(
 		client.token = client.tokens[index];
 		await context.send(`Switched to <@${client.profiles[index].id}>`);
 	},
-);
+});
 
-client.add(
-	"say",
-	[],
-	"<text> 'says the provided text'",
-	["text"],
-	async (context, options) => {
+client.register_command({
+	name: "say",
+	description: "<text> 'says the provided text'",
+	options: ["text"],
+	fn: async (context, options) => {
 		const { text, all } = options;
 		await context.send(text, { all });
 	},
-);
+});
 
-client.add(
-	"purge",
-	["deletebulk", "delbulk"],
-	"<limit=1> 'deletes `n` amount of messages sent by the bot'",
-	[],
-	async (context, options) => {
+client.register_command({
+	name: "purge",
+	aliases: ["deletebulk", "delbulk"],
+	description: "<limit=1> 'deletes `n` amount of messages sent by the bot'",
+	fn: async (context, options) => {
 		const { args } = options;
 		const limit = parseInt(args[0]) || 10;
 
@@ -164,14 +166,15 @@ client.add(
 			await progress.react("❌");
 		}
 	},
-);
+});
 
-client.add(
-	"click",
-	["interact"],
-	"<button=1> <time=1> <delay=0> 'interacts with a button in the referenced message'",
-	["reply"],
-	async (context, options) => {
+client.register_command({
+	name: "click",
+	aliases: ["interact"],
+	description:
+		"<button=1> <time=1> <delay=0> 'interacts with a button in the referenced message'",
+	options: ["reply"],
+	fn: async (context, options) => {
 		const { args, reply, all } = options;
 		if (!reply) {
 			return void await context.reply("A referenced message is required");
@@ -210,14 +213,12 @@ client.add(
 			if (delay) await sleep(delay);
 		}
 	},
-);
+});
 
-client.add(
-	"react",
-	[],
-	"<emoji=✅> 'reacts to the referenced message'",
-	[],
-	async (context, options) => {
+client.register_command({
+	name: "react",
+	description: "<emoji=✅> 'reacts to the referenced message'",
+	fn: async (context, options) => {
 		const { text, reply, all } = options;
 		const target = reply || context;
 		let emoji = text || "✅";
@@ -227,25 +228,23 @@ client.add(
 
 		await target.react(emoji, { all });
 	},
-);
+});
 
-client.add(
-	"ghostping",
-	["mention"],
-	"<id> 'mentions a user by id without pinging'",
-	["args"],
-	async (context, options) => {
+client.register_command({
+	name: "ghostping",
+	aliases: ["mention"],
+	description: "<id> 'mentions a user by id without pinging'",
+	options: ["args"],
+	fn: async (context, options) => {
 		const { args, all } = options;
 		await context.send(`<@${args[0]}>`, { mention: false, all });
 	},
-);
+});
 
-client.add(
-	"emoji",
-	[],
-	"<emoji> 'converts custom emojis to downloadable files'",
-	[],
-	async (context, options) => {
+client.register_command({
+	name: "emoji",
+	description: "<emoji> 'converts custom emojis to downloadable files'",
+	fn: async (context, options) => {
 		const { text, reply } = options;
 		const content = (text || "") + ((reply?.content as string) || "");
 		if (!content.trim()) {
@@ -269,14 +268,13 @@ client.add(
 
 		await context.send(result);
 	},
-);
+});
 
-client.add(
-	"cmds",
-	["commands", "help"],
-	"'lists all commands'",
-	[],
-	async (context, _options, env) => {
+client.register_command({
+	name: "cmds",
+	aliases: ["commands", "help"],
+	description: "'lists all commands'",
+	fn: async (context, _options, env) => {
 		const { commands } = client;
 
 		if (typeof env[0] === "function") {
@@ -358,6 +356,6 @@ client.add(
 		env[0] = reaction_handler;
 		client.on("reaction", reaction_handler);
 	},
-);
+});
 
 client.login(TOKENS);

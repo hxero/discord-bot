@@ -132,14 +132,17 @@ class Gateway {
 										: client.prefix.length,
 								);
 								const command = commandName &&
-									client.load(commandName);
+									client.load_command(commandName);
 								if (command) {
-									client.run(commandName, [context, {
-										args,
-										text,
-										reply,
-										all,
-									}]);
+									client.execute(commandName, [
+										context,
+										{
+											args,
+											text,
+											reply,
+											all,
+										},
+									]);
 								}
 							}
 						}
