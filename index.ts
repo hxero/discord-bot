@@ -74,7 +74,9 @@ client.register_command({
 	fn: async (context) => {
 		const start_time = Date.now();
 		const message = await context.send("Pong!") as ClientMessage;
-		if (message) await message.edit(`Pong! ${Date.now() - start_time}ms`);
+		if (message) {
+			await message.edit(`Pong! ${(Date.now() - start_time) / 1000}s`);
+		}
 	},
 });
 
