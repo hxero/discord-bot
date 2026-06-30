@@ -6,9 +6,9 @@ const sleep = (seconds = 0.00001) =>
 const linkless_embed = (url: string) => `[\ufe0f](${url})`;
 
 const TOKENS = [
-	"YOUR_ALT_TOKEN",
-	"YOUR_ALT_TOKEN_1",
-	// "MORE_ALTS_2"
+	"YOUR_BOT_TOKEN",
+	"YOUR_BOT_TOKEN_1",
+	// "MORE_BOT_2"
 ];
 
 const client = new Client({
